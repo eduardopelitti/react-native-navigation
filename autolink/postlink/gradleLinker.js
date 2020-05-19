@@ -1,11 +1,11 @@
 // @ts-check
-var path = require('./path');
-var fs = require('fs');
-var { warnn, errorn, logn, infon, debugn } = require('./log');
-var { insertString } = require('./stringUtils');
-var DEFAULT_KOTLIN_VERSION = '1.3.61';
+var path = require("./path");
+var fs = require("fs");
+var { warnn, errorn, logn, infon, debugn } = require("./log");
+var { insertString } = require("./stringUtils");
+var DEFAULT_KOTLIN_VERSION = "1.3.61";
 // This should be the minSdkVersion required for RNN.
-var DEFAULT_MIN_SDK_VERSION = 19
+var DEFAULT_MIN_SDK_VERSION = 19;
 
 class GradleLinker {
   constructor() {
@@ -13,22 +13,22 @@ class GradleLinker {
   }
 
   link() {
-    logn('Linking root build.gradle...');
+    logn("Linking root build.gradle...");
     if (this.gradlePath) {
-      var contents = fs.readFileSync(this.gradlePath, 'utf8');
+      var contents = fs.readFileSync(this.gradlePath, "utf8");
       contents = this._setKotlinVersion(contents);
       contents = this._setKotlinPluginDependency(contents);
       contents = this._setMinSdkVersion(contents);
       fs.writeFileSync(this.gradlePath, contents);
-      infon('Root build.gradle linked successfully!\n');
+      infon("Root build.gradle linked successfully!\n");
     } else {
-      warnn('   Root build.gradle not found!');
+      warnn("   Root build.gradle not found!");
     }
   }
 
   _setKotlinPluginDependency(contents) {
     if (this._isKotlinPluginDeclared(contents)) {
-      warnn('   Kotlin plugin already declared')
+      warnn("   Kotlin plugin already declared");
       return contents;
     }
     var match = /classpath\s*\(*["']com\.android\.tools\.build:gradle:/.exec(contents);
@@ -36,7 +36,7 @@ class GradleLinker {
       debugn("   Adding Kotlin plugin");
       return insertString(contents, match.index, `classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${DEFAULT_KOTLIN_VERSION}"\n        `);
     } else {
-      errorn("   Could not add kotlin plugin dependency")
+      errorn("   Could not add kotlin plugin dependency");
     }
     return contents;
   }
@@ -62,15 +62,15 @@ class GradleLinker {
    * the required version, set it to the required version otherwise leave as it is.
    */
   _setMinSdkVersion(contents) {
-    var minSdkVersion = this._getMinSdkVersion(contents)
+    var minSdkVersion = this._getMinSdkVersion(contents);
     // If user entered minSdkVersion is lower than the default, set it to default.
     if (minSdkVersion < DEFAULT_MIN_SDK_VERSION) {
-      debugn(`   Updating minSdkVersion to ${DEFAULT_MIN_SDK_VERSION}`)
-      return contents.replace(/minSdkVersion\s{0,}=\s{0,}\d*/, `minSdkVersion = ${DEFAULT_MIN_SDK_VERSION}`)
-    } 
+      debugn(`   Updating minSdkVersion to ${DEFAULT_MIN_SDK_VERSION}`);
+      return contents.replace(/minSdkVersion\s{0,}=\s{0,}\d*/, `minSdkVersion = ${DEFAULT_MIN_SDK_VERSION}`);
+    }
 
-    debugn(`   Already specified minSdkVersion ${minSdkVersion}`)
-    return contents.replace(/minSdkVersion\s{0,}=\s{0,}\d*/, `minSdkVersion = ${minSdkVersion}`)
+    debugn(`   Already specified minSdkVersion ${minSdkVersion}`);
+    return contents.replace(/minSdkVersion\s{0,}=\s{0,}\d*/, `minSdkVersion = ${minSdkVersion}`);
   }
 
   /**
@@ -93,14 +93,14 @@ class GradleLinker {
    * @param { string } contents
    */
   _getMinSdkVersion(contents) {
-    var minSdkVersion = contents.match(/minSdkVersion\s{0,}=\s{0,}(\d*)/)
+    var minSdkVersion = contents.match(/minSdkVersion\s{0,}=\s{0,}(\d*)/);
 
     if (minSdkVersion && minSdkVersion[1]) {
       // It'd be something like 16 for a fresh React Native project.
-      return +minSdkVersion[1] 
+      return +minSdkVersion[1];
     }
 
-    return DEFAULT_MIN_SDK_VERSION
+    return DEFAULT_MIN_SDK_VERSION;
   }
 
   /**

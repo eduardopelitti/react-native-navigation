@@ -5,8 +5,8 @@ var ActivityLinker = require("./activityLinker");
 var GradleLinker = require("./gradleLinker");
 
 module.exports = () => {
-  console.log("Running android postlink script\n");
+  infon("Running Android postlink script.");
   new AppLinker().link();
   new ActivityLinker().link();
   new GradleLinker().link();
-}
+};
