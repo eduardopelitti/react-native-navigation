@@ -10,19 +10,51 @@ var DEFAULT_MIN_SDK_VERSION = 19;
 class GradleLinker {
   constructor() {
     this.gradlePath = path.rootGradle;
+    this.setKlotinVersionSuccess = false;
+    this.setKotlinPluginDependency = false;
+    this.setMinSdkVersion = false;
   }
 
   link() {
+    if (!this.gradlePath) {
+      errorn("Root build.gradle not found! Does the file exist in the correct folder?\n   Please check the manual installation docs.");
+      return;
+    }
+
     logn("Linking root build.gradle...");
-    if (this.gradlePath) {
-      var contents = fs.readFileSync(this.gradlePath, "utf8");
+    var contents = fs.readFileSync(this.gradlePath, "utf8");
+
+    try {
       contents = this._setKotlinVersion(contents);
+      this.setKlotinVersionSuccess = true;
+    } catch (e) {
+      errorn("   " + e);
+    }
+    try {
       contents = this._setKotlinPluginDependency(contents);
+      this.setKotlinPluginDependency = true;
+    } catch (e) {
+      errorn("   " + e);
+    }
+    try {
       contents = this._setMinSdkVersion(contents);
-      fs.writeFileSync(this.gradlePath, contents);
+      this.setMinSdkVersion = true;
+    } catch (e) {
+      errorn("   " + e);
+    }
+
+    fs.writeFileSync(this.gradlePath, contents);
+
+    if (this.setKlotinVersionSuccess && this.setKotlinPluginDependency && this.setMinSdkVersion) {
       infon("Root build.gradle linked successfully!\n");
+    } else if (!this.setKlotinVersionSuccess && !this.setKotlinPluginDependency && !this.setMinSdkVersion) {
+      errorn(
+        "Root build.gradle link failed. Please review the information above and complete the necessary steps manually by following the instructions on https://wix.github.io/react-native-navigation/docs/installing#1-update-androidbuildgradle\n"
+      );
     } else {
-      warnn("   Root build.gradle not found!");
+      warnn(
+        "Root build.gradle link partially succeeded. Please review the information above and complete the necessary steps manually by following the instructions on https://wix.github.io/react-native-navigation/docs/installing#1-update-androidbuildgradle\n"
+      );
     }
   }
 
@@ -31,14 +63,14 @@ class GradleLinker {
       warnn("   Kotlin plugin already declared");
       return contents;
     }
+
     var match = /classpath\s*\(*["']com\.android\.tools\.build:gradle:/.exec(contents);
     if (match) {
       debugn("   Adding Kotlin plugin");
       return insertString(contents, match.index, `classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${DEFAULT_KOTLIN_VERSION}"\n        `);
     } else {
-      errorn("   Could not add kotlin plugin dependency");
+      throw new Error("   Could not add kotlin plugin dependency");
     }
-    return contents;
   }
 
   _setKotlinVersion(contents) {
@@ -69,7 +101,7 @@ class GradleLinker {
       return contents.replace(/minSdkVersion\s{0,}=\s{0,}\d*/, `minSdkVersion = ${DEFAULT_MIN_SDK_VERSION}`);
     }
 
-    debugn(`   Already specified minSdkVersion ${minSdkVersion}`);
+    warnn(`   Already specified minSdkVersion ${minSdkVersion}`);
     return contents.replace(/minSdkVersion\s{0,}=\s{0,}\d*/, `minSdkVersion = ${minSdkVersion}`);
   }
 
